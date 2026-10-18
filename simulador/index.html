@@ -22,6 +22,9 @@ table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{text-align:left
 label{display:flex;align-items:center;gap:8px;font-size:13.5px;margin:4px 0}input[type=range]{flex:1}
 pre{margin:0;font:12px/1.5 ui-monospace,Consolas,monospace;background:#050608;color:#9fe0a6;border-radius:8px;padding:10px;height:150px;overflow:auto}
 small{color:var(--mut)}
+.b button,#rst{position:relative}
+[data-tip]:hover::after,[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);width:max-content;max-width:230px;background:#10121a;color:#f2f4f8;font:500 12.5px/1.45 system-ui,sans-serif;text-align:left;padding:8px 11px;border-radius:8px;z-index:10;pointer-events:none;box-shadow:0 4px 16px #0006}
+.how{margin:0;padding-left:18px}.how li{margin:5px 0}.how b{white-space:nowrap}
 #rst{margin-top:14px;width:100%;padding:10px;border-radius:10px;border:2px solid #e08a00;color:var(--fg);font:600 14px system-ui;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;background:linear-gradient(90deg,#e08a0099 var(--p,0%),transparent var(--p,0%))}
 </style></head><body><main>
 <h1>Simulador do painel VW Santana</h1>
@@ -30,12 +33,12 @@ small{color:var(--mut)}
 <div class="row">
  <div class="card"><h2>Botões</h2>
   <div class="btns">
-   <div class="b"><button data-i="0" aria-label="Botão 1, programação">1</button>Cor<br><small>segure 2 s</small></div>
-   <div class="b"><button data-i="1" aria-label="Botão 2, menos">2</button>Menos</div>
-   <div class="b"><button data-i="2" aria-label="Botão 3, mais">3</button>Mais</div>
-   <div class="b"><button data-i="3" aria-label="Botão 4, efeitos">4</button>Efeito<br><small>segure 2 s</small></div>
+   <div class="b"><button data-i="0" aria-label="Botão 1, programação" data-tip="Botão 1 · Cor. Segure 2 s para entrar ou sair do modo cor. Dentro do modo, toque para trocar de área (números, agulhas, LCD).">1</button>Cor<br><small>segure 2 s</small></div>
+   <div class="b"><button data-i="1" aria-label="Botão 2, menos" data-tip="Botão 2 · Menos. Diminui o brilho. No modo cor volta a cor; no modo efeito volta o efeito. Segurar repete.">2</button>Menos</div>
+   <div class="b"><button data-i="2" aria-label="Botão 3, mais" data-tip="Botão 3 · Mais. Aumenta o brilho. No modo cor avança a cor; no modo efeito avança o efeito. Segurar repete.">3</button>Mais</div>
+   <div class="b"><button data-i="3" aria-label="Botão 4, efeitos" data-tip="Botão 4 · Efeito. Segure 2 s para entrar ou sair do modo efeito. Dentro do modo, toque para trocar de área.">4</button>Efeito<br><small>segure 2 s</small></div>
   </div>
-  <button id="rst" type="button">Reset: segure 5 s</button><p style="margin:6px 0 0"><small>Equivale a segurar 2 + 3. Pisca laranja aos 5 s; solte para resetar.</small></p>
+  <button id="rst" type="button" data-tip="Segure 5 s até piscar laranja e solte: restaura cores, brilho e efeitos de fábrica. Soltar antes cancela.">Reset: segure 5 s</button><p style="margin:6px 0 0"><small>Equivale a segurar 2 + 3. Pisca laranja aos 5 s; solte para resetar.</small></p>
   <label>Velocidade <input id="spd" type="range" min="0" max="220" value="20"><span id="spdv" style="width:34px">20</span></label>
   <label>Rotação <input id="rpm" type="range" min="0" max="7000" step="100" value="0"><span id="rpmv" style="width:34px">0</span></label>
   <label><input id="mute" type="checkbox"> Sem som</label>
@@ -46,6 +49,15 @@ small{color:var(--mut)}
   <small>LEDs (números · agulhas · LCD)</small><div class="strip" id="s0"></div><div class="strip" id="s1"></div><div class="strip" id="s2"></div>
  </div>
 </div>
+<div class="card" style="margin-top:14px"><h2>Como usar os botões</h2>
+ <ol class="how">
+  <li><b>Brilho:</b> fora dos modos, o botão 3 aumenta e o 2 diminui o brilho (10 níveis).</li>
+  <li><b>Cor:</b> segure o botão 1 por 2 s. Toque no 1 para trocar de área (números, agulhas, LCD) e use 2 e 3 para mudar a cor. Segure o 1 por 2 s para sair.</li>
+  <li><b>Efeito:</b> segure o botão 4 por 2 s. Toque no 4 para trocar de área e use 2 e 3 para mudar o efeito. Segure o 4 por 2 s para sair.</li>
+  <li><b>Saída automática:</b> 15 s sem apertar nada encerra o modo e salva.</li>
+  <li><b>Reset:</b> segure 2 e 3 juntos (ou use o botão Reset) por 5 s, até piscar laranja, e solte.</li>
+  <li><b>Atalhos:</b> as teclas 1, 2, 3 e 4 funcionam como os botões. Passe o mouse sobre cada botão para ver a função.</li>
+ </ol></div>
 <div class="card" style="margin-top:14px"><h2>Monitor serial</h2><pre id="log"></pre></div>
 </main>
 <script>
