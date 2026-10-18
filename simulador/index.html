@@ -1,1 +1,209 @@
-
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador do painel VW Santana</title>
+<style>
+:root{--bg:#eceef2;--fg:#1a1d24;--mut:#5b6270;--card:#fff;--line:#d5dae3;--acc:#1e6fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0d11;--fg:#e8eaf0;--mut:#98a1b3;--card:#15171d;--line:#262a33}}
+:root[data-theme="dark"]{--bg:#0c0d11;--fg:#e8eaf0;--mut:#98a1b3;--card:#15171d;--line:#262a33}
+html,body{margin:0}body{background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1040px;margin:0 auto;padding:18px 14px 40px}
+h1{font-size:22px;margin:4px 0 2px}p.sub{margin:0 0 14px;color:var(--mut)}
+.cl{background:#050608;border-radius:18px;padding:10px;border:1px solid #222}.cl svg{width:100%;height:auto;display:block}
+.row{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;flex:1 1 300px}
+h2{font-size:14px;margin:0 0 10px}
+.btns{display:flex;gap:14px;justify-content:space-between}.b{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12.5px;color:var(--mut);text-align:center;flex:1}
+.b button{width:58px;height:58px;border-radius:50%;border:2px solid var(--acc);background:var(--card);color:var(--fg);font:700 20px system-ui;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.b button.on{background:var(--acc);color:#fff}.b button:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}td,th{text-align:left;padding:5px 4px;border-bottom:1px solid var(--line)}th{color:var(--mut);font-weight:600}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid #8886}
+#mode{font-weight:700;margin-bottom:8px}
+.strip{display:flex;gap:3px;margin:4px 0}.strip i{flex:1;height:14px;border-radius:3px;background:#000;border:1px solid #8884;max-width:34px}
+label{display:flex;align-items:center;gap:8px;font-size:13.5px;margin:4px 0}input[type=range]{flex:1}
+pre{margin:0;font:12px/1.5 ui-monospace,Consolas,monospace;background:#050608;color:#9fe0a6;border-radius:8px;padding:10px;height:150px;overflow:auto}
+small{color:var(--mut)}
+#rst{margin-top:14px;width:100%;padding:10px;border-radius:10px;border:2px solid #e08a00;color:var(--fg);font:600 14px system-ui;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;background:linear-gradient(90deg,#e08a0099 var(--p,0%),transparent var(--p,0%))}
+</style></head><body><main>
+<h1>Simulador do painel VW Santana</h1>
+<p class="sub">Mesma lógica do firmware: segure os botões 1 e 4 por 2 s para entrar nos modos. Teclado: 1, 2, 3 e 4.</p>
+<div class="cl"><svg id="cl" viewBox="175 150 1100 380" role="img" aria-label="Painel de instrumentos simulado"></svg></div>
+<div class="row">
+ <div class="card"><h2>Botões</h2>
+  <div class="btns">
+   <div class="b"><button data-i="0" aria-label="Botão 1, programação">1</button>Cor<br><small>segure 2 s</small></div>
+   <div class="b"><button data-i="1" aria-label="Botão 2, menos">2</button>Menos</div>
+   <div class="b"><button data-i="2" aria-label="Botão 3, mais">3</button>Mais</div>
+   <div class="b"><button data-i="3" aria-label="Botão 4, efeitos">4</button>Efeito<br><small>segure 2 s</small></div>
+  </div>
+  <button id="rst" type="button">Reset: segure 5 s</button><p style="margin:6px 0 0"><small>Equivale a segurar 2 + 3. Pisca laranja aos 5 s; solte para resetar.</small></p>
+  <label>Velocidade <input id="spd" type="range" min="0" max="220" value="20"><span id="spdv" style="width:34px">20</span></label>
+  <label>Rotação <input id="rpm" type="range" min="0" max="7000" step="100" value="0"><span id="rpmv" style="width:34px">0</span></label>
+  <label><input id="mute" type="checkbox"> Sem som</label>
+ </div>
+ <div class="card"><h2>Estado</h2><div id="mode"></div>
+  <table><thead><tr><th>Área</th><th>Cor</th><th>Efeito</th></tr></thead><tbody id="tb"></tbody></table>
+  <p style="margin:10px 0 4px">Brilho: <b id="br"></b></p>
+  <small>LEDs (números · agulhas · LCD)</small><div class="strip" id="s0"></div><div class="strip" id="s1"></div><div class="strip" id="s2"></div>
+ </div>
+</div>
+<div class="card" style="margin-top:14px"><h2>Monitor serial</h2><pre id="log"></pre></div>
+</main>
+<script>
+const PAL=[["Vermelho",255,0,0],["Verde",0,255,0],["Azul",0,0,255],["Ciano",0,255,255],["Roxo",150,0,255],["Amarelo",255,150,0],["Lime",200,200,0],["Neon Orange",255,20,0],["Pink",255,0,100],["Branco",255,255,255],["VW Blue",40,40,255],["VW Blue 2",30,0,180],["Santana Blue",0,130,255],["Santana Green",80,255,20],["Light UV",100,0,255],["UV",70,0,255],["Salmon",255,60,20],["Deep Cyan",80,150,255]];
+const EFF=["Nenhum","Onda","Arco-íris rápido","Arco-íris lento","Strobe rápido","Strobe lento","Fade lento","Ciclo RGB rápido","Ciclo RGB lento"];
+const BL=[25,40,60,80,110,140,170,200,230,255],SZ=[16,8,4],NAMES=["Números","Agulhas","LCD"];
+const H=6400,L=3200,K=[0,0,0];
+let S={c:[0,0,0],e:[0,0,0],br:5};
+try{const j=JSON.parse(localStorage.getItem("santana")||"null");if(j&&j.c&&j.e)S=j}catch(e){}
+let saved=JSON.stringify(S),selMode=false,effMode=false,selStrip=0,effStrip=0,lastAct=0,lastEE=0,curBr=BL[S.br-1],hue=[0,64,128];
+let resetMode=false,resetStart=0,lastResetFlash=0,flash=null,boot=performance.now();
+const leds=SZ.map(n=>Array.from({length:n},()=>[0,0,0]));
+const logEl=document.getElementById("log"),logs=[];
+function log(m){logs.push(m);if(logs.length>40)logs.shift();logEl.textContent=logs.join("\n");logEl.scrollTop=1e9}
+log("=== SISTEMA PRONTO ===");
+const lim=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sin8=x=>Math.round(127.5+127.5*Math.sin((x&255)*Math.PI/128));
+function hsv(h){const x=(h&255)/256*6,i=Math.floor(x),f=x-i,q=255*(1-f),t=255*f;return[[255,t,0],[q,255,0],[0,255,t],[0,q,255],[t,0,255],[255,0,q]][i%6].map(Math.round)}
+const pal=i=>PAL[lim(i,0,17)].slice(1);
+const scale=(c,s)=>c.map(v=>Math.round(v*s/255));
+function fill(k,c){leds[k].forEach(p=>{p[0]=c[0];p[1]=c[1];p[2]=c[2]})}
+function clearAll(){for(let k=0;k<3;k++)fill(k,[0,0,0])}
+// ---- som
+let ac=null;
+function snd(seq){if(document.getElementById("mute").checked)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();let t=ac.currentTime+.01;
+ for(const [f,d] of seq){if(f){const o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.value=f;g.gain.value=.025;o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d/1000)}t+=d/1000}}catch(e){}}
+const sd={enterC:[[L,120],[0,30],[H,120]],stripe:[[H,120],[0,30],[H,120]],exitC:[[H,120],[0,30],[L,120]],up:[[H,80]],down:[[L,80]],
+ upMax:[[H,60],[0,20],[H,60],[0,20],[H,60]],downMin:[[L,60],[0,20],[L,60],[0,20],[L,60]],
+ enterE:[[H,120],[0,30],[L,120],[0,30],[H,120]],exitE:[[L,120],[0,30],[H,120],[0,30],[L,120]]};
+// ---- LEDs
+function updateAll(){clearAll();for(let k=0;k<3;k++)fill(k,pal(S.c[k]));
+ if(selMode)for(let k=0;k<3;k++)if(k!==selStrip)leds[k].forEach((p,i)=>leds[k][i]=scale(p,20))}
+function effectStrip(k,eff,t){const a=leds[k],n=a.length,base=pal(S.c[k]);
+ switch(eff){
+ case 1:for(let i=0;i<n;i++)a[i]=scale(base,Math.min(255,60+sin8(i*Math.floor(256/n)+(t>>3))));break;
+ case 2:case 3:{const d=eff==2?8:6;for(let i=0;i<n;i++)a[i]=hsv(hue[k]+i*d);hue[k]=(hue[k]+(eff==2?6:1))&255;break}
+ case 4:case 5:if(((t/(eff==4?100:400))|0)&1)fill(k,[255,255,255]);else clearAll();break;
+ case 6:{const s=sin8((t/40)|0),b=Math.round(40+s*215/255);for(let i=0;i<n;i++)a[i]=scale(base,b);break}
+ case 7:case 8:fill(k,hsv(hue[k]));hue[k]=(hue[k]+(eff==7?3:1))&255;break;
+ default:fill(k,base)}}
+function applyEffects(t){if(!S.e.some(x=>x))return updateAll();for(let k=0;k<3;k++)S.e[k]?effectStrip(k,S.e[k],t):fill(k,pal(S.c[k]))}
+// ---- flashes
+function startFlash(kind,strip){flash={kind,strip,t0:performance.now()}}
+function overlay(now){if(!flash)return null;const dt=now-flash.t0,f=flash,blk=[0,0,0];
+ const all=c=>[0,1,2].map(k=>leds[k].map(()=>c));
+ if(f.kind=="strip"){if(dt>=480){flash=null;return null}const o=leds.map(a=>a.map(p=>p));o[f.strip]=leds[f.strip].map(()=>(dt%240)<120?[255,255,255]:blk);return o}
+ if(f.kind=="green"){if(dt>=500){flash=null;return null}return all((dt%100)<50?[0,255,0]:blk)}
+ if(f.kind=="orange")return dt>=100?(flash=null,null):all([255,179,0]);
+ if(f.kind=="chase"){if(dt>=400){flash=null;return null}const o=all(blk),i=15-Math.floor(dt/25);o[0][lim(i,0,15)]=f.strip?[0,255,0]:[255,0,0];return o}
+ return null}
+// ---- ações
+const now=()=>performance.now();
+function save(){S.br=lim(S.br,1,10);saved=JSON.stringify(S);try{localStorage.setItem("santana",saved)}catch(e){}log("Valores salvos no EEPROM.")}
+function setBr(){curBr=(selMode||effMode)?255:BL[S.br-1]}
+function act(d){if(resetMode)return;lastAct=now();
+ if(!selMode&&!effMode){
+  if(d>0){if(S.br<10){S.br++;snd(sd.up);save();setBr();log("Brilho: "+S.br)}else{snd(sd.upMax);startFlash("chase",1)}}
+  else{if(S.br>1){S.br--;snd(sd.down);save();setBr();log("Brilho: "+S.br)}else{snd(sd.downMin);startFlash("chase",0)}}
+ }else if(selMode){snd(d>0?sd.up:sd.down);const k=selStrip;S.c[k]=(S.c[k]+d+18)%18;log(NAMES[k]+" preset: "+S.c[k]+" - "+PAL[S.c[k]][0])}
+ else{snd(d>0?sd.up:sd.down);const k=effStrip;S.e[k]=(S.e[k]+d+9)%9;log(NAMES[k]+" efeito: "+S.e[k])}}
+function shortPress(i){if(resetMode)return;
+ if(i==0&&selMode){selStrip=(selStrip+1)%3;snd(sd.stripe);lastAct=now();log("Strip selecionada: "+NAMES[selStrip]);startFlash("strip",selStrip)}
+ else if(i==3&&effMode){effStrip=(effStrip+1)%3;lastAct=now();log("Editar strip: "+NAMES[effStrip]);startFlash("strip",effStrip)}
+ else if(i==1)act(-1);else if(i==2)act(1)}
+function longPress(i){lastAct=now();
+ if(i==0){selMode=!selMode;setBr();if(selMode){snd(sd.enterC);log("Entrando no Modo de Selecao de Cor.");startFlash("strip",selStrip)}else{snd(sd.exitC);save();log("Saindo do Modo de Selecao de Cor.");startFlash("green")}}
+ else{effMode=!effMode;setBr();if(effMode){snd(sd.enterE);log("Entrando no Modo de Selecao de Efeito.");startFlash("strip",effStrip)}else{snd(sd.exitE);save();log("Saindo do Modo de Selecao de Efeito.");startFlash("green")}}}
+function performReset(){S={c:[0,0,0],e:[0,0,0],br:5};selMode=effMode=false;resetMode=false;save();setBr();hue=[0,64,128];boot=now();log("Reset concluido. Reiniciando...")}
+// ---- botões
+const B=[0,1,2,3].map(()=>({d:false,t0:0,rep:0,long:false}));
+function down(i){if(B[i].d)return;const t=now();B[i]={d:true,t0:t,rep:t,long:false};
+ document.querySelector(`button[data-i="${i}"]`).classList.add("on");
+ try{ac&&ac.state=="suspended"&&ac.resume();ac=ac||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
+ if(B[1].d&&B[2].d&&!resetMode){resetMode=true;resetStart=t;lastResetFlash=0;log("Iniciando reset - mantenha pressionado...");return}
+ shortPress(i)}
+function up(i){if(!B[i].d)return;B[i].d=false;document.querySelector(`button[data-i="${i}"]`).classList.remove("on");
+ if(resetMode&&(i==1||i==2)){if(now()-resetStart>=5000)performReset();else{resetMode=false;log("Reset cancelado.")}}}
+document.querySelectorAll(".b button").forEach(b=>{const i=+b.dataset.i;
+ b.addEventListener("pointerdown",e=>{e.preventDefault();b.setPointerCapture(e.pointerId);down(i)});
+ ["pointerup","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>up(i)));
+ b.addEventListener("keydown",e=>e.preventDefault())});
+addEventListener("keydown",e=>{const i="1234".indexOf(e.key);if(i>=0&&!e.repeat)down(i)});
+addEventListener("keyup",e=>{const i="1234".indexOf(e.key);if(i>=0)up(i)});
+// ---- laço do firmware (~90 Hz)
+let acc=0,prev=now();
+function step(t){
+ for(let i=0;i<4;i++){const b=B[i];if(!b.d||resetMode)continue;
+  if((i==0||i==3)&&!b.long&&t-b.t0>2000){b.long=true;longPress(i)}
+  if((i==1||i==2)&&t-b.t0>500&&t-b.rep>120){b.rep=t;act(i==1?-1:1)}}
+ if(resetMode&&B[1].d&&B[2].d&&t-resetStart>=5000&&t-lastResetFlash>=500){lastResetFlash=t;startFlash("orange")}
+ if(JSON.stringify(S)!==saved&&lastAct&&t-lastAct>5000&&t-lastEE>5000){save();lastEE=t}
+ if((selMode||effMode)&&t-lastAct>15000){log("Tempo esgotado. Saindo do modo de selecao.");if(selMode){selMode=false;snd(sd.exitC)}else{effMode=false;snd(sd.exitE)}setBr();startFlash("green")}
+ applyEffects(t)}
+// ---- SVG do painel (réplica da foto)
+const NS="http://www.w3.org/2000/svg",svg=document.getElementById("cl"),E=[[],[],[]],LT=[],R=[];
+const FF="Bahnschrift,'Arial Narrow',Arial,sans-serif";
+function el(tag,a,p){const n=document.createElementNS(NS,tag);for(const k in a)n.setAttribute(k,a[k]);(p||svg).appendChild(n);return n}
+const XMIN=270,XMAX=1140,ledOf=(k,x)=>SZ[k]-1-lim(Math.floor((x-XMIN)/(XMAX-XMIN)*SZ[k]),0,SZ[k]-1);
+const pt=(cx,cy,r,a)=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
+svg.insertAdjacentHTML("beforeend",'<defs><filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>');
+el("rect",{x:190,y:168,width:1078,height:350,rx:30,fill:"#0a0a0c"});
+[[405,322,138,118],[722,326,150,138],[1016,311,124,114]].forEach(([cx,cy,rx,ry])=>el("ellipse",{cx,cy,rx,ry,fill:"#08080a",stroke:"#2a2b31","stroke-width":5}));
+[[556,213],[880,209]].forEach(([cx,cy])=>el("circle",{cx,cy,r:17,fill:"#17181c",stroke:"#2c2d33","stroke-width":2}));
+for(let i=0;i<5;i++)el("rect",{x:318+i*58,y:458,width:44,height:40,rx:3,fill:"#0f1013",stroke:"#25262b"});
+for(let i=0;i<4;i++)el("rect",{x:872+i*50,y:440,width:40,height:40,rx:3,fill:"#0f1013",stroke:"#25262b"});
+[[250,428],[252,451]].forEach(([cx,cy])=>el("circle",{cx,cy,r:6,fill:"#8a8b90",stroke:"#222"}));
+el("rect",{x:731,y:441,width:12,height:28,rx:3,fill:"#9a9ba0",transform:"rotate(-12 737 455)"});
+el("circle",{cx:381,cy:226,r:8,fill:"#6a3510"});el("circle",{cx:432,cy:225,r:8,fill:"#5e1414"});
+const gN=el("g",{filter:"url(#g)"}),gR=el("g",{filter:"url(#g)"}),gA=el("g",{filter:"url(#g)"});
+function txt(g,x,y,s,str,w){const n=el("text",{x,y,"text-anchor":"middle","dominant-baseline":"central","font-size":s,"font-weight":w||600,"font-family":FF},g);n.textContent=str;return n}
+const numTxt=(x,y,s,str,led)=>E[0].push({n:txt(gN,x,y,s,str),at:"fill",led:led??ledOf(0,x)});
+const redTxt=(x,y,s,str,led)=>R.push({n:txt(gR,x,y,s,str),at:"fill",led:led??ledOf(0,x)});
+function ln(x1,y1,x2,y2,w,red,led){const n=el("line",{x1,y1,x2,y2,"stroke-width":w},red?gR:gN);(red?R:E[0]).push({n,at:"stroke",led:led??ledOf(0,(x1+x2)/2)})}
+// velocímetro
+for(let v=20;v<=220;v+=10){const a=(v-120)*1.33,mj=v%20==0,[x1,y1]=pt(722,335,mj?124:131,a),[x2,y2]=pt(722,335,142,a);ln(x1,y1,x2,y2,mj?4:2.5);if(mj){const [x,y]=pt(722,335,110,a);numTxt(x,y,23,v)}}
+// conta-giros
+for(let v=0;v<=70;v+=5){const a=-125+v*250/70,mj=v%10==0,[x1,y1]=pt(1012,330,mj?106:113,a),[x2,y2]=pt(1012,330,125,a);ln(x1,y1,x2,y2,mj?4:2.5,v>=65);if(mj){const [x,y]=pt(1012,330,90,a);(v==70?redTxt:numTxt)(x,y,23,v)}}
+// combustível e temperatura
+function arc(P0,P1,P2,C,len,red){for(let i=0;i<=10;i++){const t=i/10,x=(1-t)*(1-t)*P0[0]+2*t*(1-t)*P1[0]+t*t*P2[0],y=(1-t)*(1-t)*P0[1]+2*t*(1-t)*P1[1]+t*t*P2[1],d=Math.hypot(C[0]-x,C[1]-y);ln(x,y,x+(C[0]-x)/d*len,y+(C[1]-y)/d*len,i%5==0?4:2.5,false,red?14:undefined)}}
+arc([318,256],[262,296],[288,356],[385,310],13,true);arc([497,257],[556,292],[536,358],[430,310],13);
+numTxt(333,279,16,"1/1",14);numTxt(314,313,16,"1/2",14);numTxt(303,350,16,"0",14);R.push({n:el("rect",{x:279,y:350,width:14,height:14,rx:2,transform:"rotate(-20 286 357)"},gR),at:"fill",led:15});numTxt(486,277,16,"110");numTxt(512,348,16,"70");
+const ico=(d,x)=>E[0].push({n:el("path",{d,fill:"none","stroke-width":2.2,"stroke-linecap":"round","stroke-linejoin":"round"},gN),at:"stroke",led:ledOf(0,x)});
+ico("M346 253V231a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v22M343 253h18M349 233h6v6h-6zM359 235h3a3 3 0 0 1 3 3v8a1.8 1.8 0 0 0 3.6 0v-9l-3-3",355);
+ico("M446 228h4v11.5a4.2 4.2 0 1 1-4 0zM453 230h3M453 234h3M440 247q3-3 6 0t6 0t6 0M440 252q3-3 6 0t6 0t6 0",450);
+numTxt(472,238,16,"°C");
+numTxt(727,255,12,"Electronic");numTxt(613,395,13,"km/h");numTxt(1016,382,12,"1/min x 100");
+redTxt(762,352,12,"km");redTxt(695,388,10,"total");redTxt(411,380,13,"Quartz");
+// agulhas
+function needle(cx,cy,len,w,ang){const g=el("g",{transform:`rotate(${ang} ${cx} ${cy})`},gA);const n=el("polygon",{points:`${cx-w},${cy+14} ${cx-w*.5},${cy-len*.4} ${cx},${cy-len} ${cx+w*.5},${cy-len*.4} ${cx+w},${cy+14}`},g);E[1].push({n,at:"fill",led:ledOf(1,cx)});return g}
+const nS=needle(727,332,128,5,-137),nT=needle(1021,320,100,4.5,-131);needle(355,313,60,3.5,-126);needle(457,311,60,3.5,125);
+[[355,313,20,"#b9b9bc"],[457,311,20,"#b9b9bc"],[727,332,27,"#121316"],[1021,320,23,"#2a2b30"]].forEach(([cx,cy,r,f])=>el("circle",{cx,cy,r,fill:f,stroke:"#55565c","stroke-width":3}));
+// LCDs
+function lcd(x,y,w,h,str){const r=el("rect",{x,y,width:w,height:h,rx:3,stroke:"#000","stroke-width":2});E[2].push({n:r,at:"fill",led:ledOf(2,x+w/2)});
+ const t=el("text",{x:x+w/2,y:y+h/2+1,"text-anchor":"middle","dominant-baseline":"central","font-size":h*.72,"font-family":"ui-monospace,Consolas,monospace","font-weight":700,"letter-spacing":2});t.textContent=str;LT.push({n:t,led:ledOf(2,x+w/2)});return t}
+const clk=lcd(360,400,102,36,"23:42");lcd(677,379,94,40,"172651");
+function tm(){const d=new Date();clk.textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}tm();setInterval(tm,15000);
+const spd=document.getElementById("spd"),rpm=document.getElementById("rpm");
+function gauges(){const v=+spd.value,r=+rpm.value;document.getElementById("spdv").textContent=v;document.getElementById("rpmv").textContent=r;
+ nS.setAttribute("transform",`rotate(${-137+v/220*274} 727 332)`);nT.setAttribute("transform",`rotate(${-131+r/7000*262} 1021 320)`)}
+spd.oninput=rpm.oninput=gauges;spd.value=20;rpm.value=0;gauges();
+// botão de reset na tela (equivale a segurar 2 + 3)
+const rst=document.getElementById("rst");
+rst.addEventListener("pointerdown",e=>{e.preventDefault();rst.setPointerCapture(e.pointerId);const t=now();B[1]={d:true,t0:t,rep:t,long:false};B[2]={d:true,t0:t,rep:t,long:false};resetMode=true;resetStart=t;lastResetFlash=0;log("Iniciando reset - mantenha pressionado...")});
+["pointerup","pointercancel"].forEach(ev=>rst.addEventListener(ev,()=>{if(resetMode&&B[1].d&&B[2].d){B[1].d=B[2].d=false;if(now()-resetStart>=5000)performReset();else{resetMode=false;log("Reset cancelado.")}}}));
+// ---- UI
+const sx=[0,1,2].map(k=>{const d=document.getElementById("s"+k);return Array.from({length:SZ[k]},()=>d.appendChild(document.createElement("i")))});
+const css=c=>`rgb(${c[0]},${c[1]},${c[2]})`;
+function frame(t){let src=(overlay(t)||leds).map((a,k)=>k?a:a.map((c,i)=>i==SZ[0]-1?[255,255,255]:c));const bootP=Math.min(1,(t-boot)/800),gain=curBr/255*(bootP*bootP);
+ const out=src.map(a=>a.map(c=>c.map(v=>Math.round(255*Math.pow(v/255*gain,.6)))));
+ for(let k=0;k<3;k++){E[k].forEach(o=>o.n.setAttribute(o.at,css(out[k][o.led])));out[k].forEach((c,i)=>sx[k][i].style.background=css(c))}
+ LT.forEach(o=>o.n.setAttribute('fill',css(out[2][o.led].map(v=>Math.round(v+(255-v)*.75)))));
+ R.forEach(o=>o.n.setAttribute(o.at,css(scale([255,58,77],Math.max(...out[0][o.led])))));
+ rst.style.setProperty('--p',(resetMode?Math.min(100,(t-resetStart)/50):0)+'%')}
+let ui=0;
+function updUI(){const m=document.getElementById("mode");
+ m.textContent=resetMode?"Reset: segure 2 + 3 até piscar laranja":selMode?"Modo cor · área: "+NAMES[selStrip]:effMode?"Modo efeito · área: "+NAMES[effStrip]:"Modo normal";
+ document.getElementById("br").textContent=S.br+" de 10";
+ document.getElementById("tb").innerHTML=NAMES.map((n,k)=>`<tr><td>${n}</td><td><span class="sw" style="background:${css(pal(S.c[k]))}"></span>${PAL[S.c[k]][0]}</td><td>${EFF[S.e[k]]}</td></tr>`).join("")}
+function loop(t){acc+=t-prev;prev=t;let n=0;while(acc>=11&&n<4){step(t);acc-=11;n++}if(n==4)acc=0;frame(t);if(t-ui>120){ui=t;updUI()}requestAnimationFrame(loop)}
+requestAnimationFrame(t=>{prev=t;loop(t)});
+</script></body></html>
